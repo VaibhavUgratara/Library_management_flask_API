@@ -26,7 +26,7 @@ def library_books():
         allowed_fields=['title','author','published_year']
         for k in book_info.keys():
             if k not in allowed_fields:
-                return jsonify({'error':f'invalid field {k}'})
+                return jsonify({'error':f'invalid field {k}'}), 400
         
         book_info['id']=(1 if len(books_data)==0 else books_data[-1]['id']+1)
         books_data.append(book_info)
@@ -55,7 +55,7 @@ def make_changes_in_books_data(book_id):
         allowed_fields=['title','author','published_year']
         for k in update_info.keys():
             if k not in allowed_fields:
-                return jsonify({'error':f'invalid field {k}'}), 404
+                return jsonify({'error':f'invalid field {k}'}), 400
         
         for i in update_info.keys():
             Book[i]=update_info[i]
@@ -79,7 +79,7 @@ def search_books():
     allowed_fields=['author','title']
     for i in info.keys():
         if(i not in allowed_fields):
-            return jsonify({'error':f'invalid field {i}'})
+            return jsonify({'error':f'invalid field {i}'}), 400
     
     search_results=[]
 
@@ -147,7 +147,7 @@ def make_changes_in_members_data(member_id):
         allowed_fields=['name','address','contact','date_of_birth']
         for k in update_info.keys():
             if k not in allowed_fields:
-                return jsonify({'error':f'invalid field {k}'}), 404
+                return jsonify({'error':f'invalid field {k}'}), 400
         
         for i in update_info.keys():
             Member[i]=update_info[i]
