@@ -1,11 +1,47 @@
 from flask import Flask, request, jsonify
 
+from flask_sqlalchemy import SQLAlchemy
+
+from datetime import datetime
+
 app=Flask(__name__)
 
 
-# Books and members list
-books_data=[]
-members_data=[]
+
+app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///Library.db'
+
+db=SQLAlchemy(app)
+
+# Books and members Classes
+
+
+class Books(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(50),nullable=False)
+    author = db.Column(db.String(50),nullable=False)
+    published_year = db.Column(db.Integer,nullable=False)
+
+class Members(db.Model):
+    id = db.Column(db.Integer,primary_key=True)
+    name = db.Column(db.String(30),unique=True,nullable=False)
+    address = db.Column(db.String(50),nullable=False)
+    contact = db.Column(db.Integer,nullable=False)
+    date_of_birth = db.Column(db.DateTime,nullable=False)
+
+
+def fetch_books():
+    books_data=[]
+    BooksData=db.session.query(Books).all()
+    for i in BooksData:
+            info={
+                'id':i.id,
+                'title':i.title,
+                'author':i.author,
+                'published_year':i.published_year
+            }
+            books_data.append(info)
+    return books_data
+
 
 
 @app.route('/',methods=['GET'])
@@ -16,8 +52,12 @@ def api_intro():
 # Route for adding and fetching books
 @app.route('/books',methods=['GET','POST'])
 def library_books():
-    global books_data
     if request.method == 'POST':
+        max_id=Books.query.order_by(Books.id.desc()).first()
+        if max_id is None:
+            crr_id=1
+        else:
+            crr_id=max_id.id+1
         status_code=201
         book_info=request.get_json()
         if ( not book_info.get('title') or not(book_info.get('author')) or not(book_info.get('published_year')) ):
@@ -27,12 +67,22 @@ def library_books():
         for k in book_info.keys():
             if k not in allowed_fields:
                 return jsonify({'error':f'invalid field {k}'}), 400
+        if (book_info['published_year']<0) or (book_info['published_year']>datetime.today().year):
+            return jsonify({'error':f'published_year invalid'}), 400
         
-        book_info['id']=(1 if len(books_data)==0 else books_data[-1]['id']+1)
-        books_data.append(book_info)
+        book_info['id']=crr_id
+        BookObj=Books(
+            id=book_info['id'],
+            title=book_info['title'],
+            author=book_info['author'],
+            published_year=book_info['published_year']
+        )
+        db.session.add(BookObj)
+        db.session.commit()
         json_message=jsonify({'created':book_info})
 
     else:
+        books_data=fetch_books()
         status_code=200
         json_message=jsonify(books_data)
 
@@ -41,65 +91,69 @@ def library_books():
 #Route for updating and deleting book information
 @app.route('/books/<int:book_id>',methods=['PUT','DELETE'])
 def make_changes_in_books_data(book_id):
-    global books_data
-
-    Book=next((b for b in books_data if b['id']==book_id),None)
+    Book=Books.query.filter_by(id=book_id).first()
     if(Book is None):
         return jsonify({'error':'book not found'}), 404
     
-    data_index=books_data.index(Book)
-    
     if request.method=="PUT":
         update_info=request.get_json()
-
         allowed_fields=['title','author','published_year']
+
         for k in update_info.keys():
             if k not in allowed_fields:
                 return jsonify({'error':f'invalid field {k}'}), 400
+            
+        if (update_info['published_year']<0) or (update_info['published_year']>datetime.today().year):
+            return jsonify({'error':f'published_year invalid'}), 400
         
+        Book={'title':Book.title,'author':Book.author,'published_year':Book.published_year}
+
         for i in update_info.keys():
             Book[i]=update_info[i]
-        
-        books_data[data_index]=Book
 
+        Books.query.filter_by(id=book_id).update({
+            'title':Book['title'],
+            'author':Book['author'],
+            'published_year':Book['published_year']
+        })
+        db.session.commit()
         json_message=jsonify({'updated':Book})
 
     else:
-        deleted_data = books_data.pop(data_index)
-        json_message=jsonify({'deleted':deleted_data})
+        deleted_data = Books.query.filter_by(id=book_id).first()
+        Books.query.filter_by(id=book_id).delete()
+        json_message=jsonify({'deleted':deleted_data.title})
+        db.session.commit()
 
     return json_message
 
 
-@app.route('/books/search',methods=['POST'])
+@app.route('/books/search/')
 def search_books():
-    global books_data
-    info=request.get_json()
+    author=request.args.get('author')
+    title=request.args.get('title')
+    status_code=200
+    if(author is not None):
+        BookObj=Books.query.filter_by(author=author).all()
 
-    allowed_fields=['author','title']
-    for i in info.keys():
-        if(i not in allowed_fields):
-            return jsonify({'error':f'invalid field {i}'}), 400
-    
-    search_results=[]
+    elif(title is not None):
+        BookObj=Books.query.filter_by(title=title).all()
 
-    if ('author' in info.keys() and 'title' in info.keys()):
-        for i in books_data:
-            if(info['author']==i['author'] and info['title']==i['title']):
-                search_results.append(i)
-
-    elif 'author' in info.keys():
-        for i in books_data:
-            if(info['author']==i['author']):
-                search_results.append(i)
-
+    if(BookObj is None or len(BookObj)==0):
+        json_message={'error':'book not found'}
+        status_code = 404
     else:
-        for i in books_data:
-            if(info['title']==i['title']):
-                search_results.append(i)
+        search_results=[]
+        for i in BookObj:
+            tempDict=dict()
+            tempDict['id']=i.id
+            tempDict['title']=i.title
+            tempDict['author']=i.author
+            tempDict['published_year']=i.published_year
+            search_results.append(tempDict)
+        json_message=jsonify(search_results)
 
-    return jsonify(search_results)
-
+    return json_message , status_code
 
 
 #Route for adding and fetching members
@@ -161,6 +215,7 @@ def make_changes_in_members_data(member_id):
         json_message=jsonify({'deleted':deleted_data})
 
     return json_message
+
 
 
 
