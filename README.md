@@ -4,8 +4,8 @@ A simple Library Management System API built using Flask that allows CRUD operat
 <hr>
 Steps to run the project:<br>
 <pre>
-  <b>Step 1:</b> First install the Flask library by running the following command:<br>
-      <b> pip install flask </b> <br>
+  <b>Step 1:</b> First install the libraries by running the following command:<br>
+      <b> pip install -r requirements.txt </b> <br>
   <b>Step 2:</b> Now you're good to go just run <b> python app.py </b> command in the terminal to start it.
 </pre>
 <hr>
