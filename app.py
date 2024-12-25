@@ -22,6 +22,14 @@ class Books(db.Model):
     author = db.Column(db.String(50),nullable=False)
     published_year = db.Column(db.Integer,nullable=False)
 
+    def format(self):
+        return{
+            'id':self.id,
+            'title':self.title,
+            'author':self.author,
+            'published_year':self.published_year
+        }
+
 class Members(db.Model):
     id = db.Column(db.Integer,primary_key=True)
     name = db.Column(db.String(30),nullable=False)
@@ -29,19 +37,16 @@ class Members(db.Model):
     contact = db.Column(db.Integer,nullable=False)
     date_of_birth = db.Column(db.DateTime,nullable=False)
 
+    def format(self):
+        return{
+            'id':self.id,
+            'name':self.name,
+            'address':self.address,
+            'contact,':self.contact,
+            'date_of_birth':self.date_of_birth
+        }
 
-def fetch_books():
-    books_data=[]
-    BooksData=db.session.query(Books).all()
-    for i in BooksData:
-            info={
-                'id':i.id,
-                'title':i.title,
-                'author':i.author,
-                'published_year':i.published_year
-            }
-            books_data.append(info)
-    return books_data
+
 
 def fetch_members():
     members_data=[]
@@ -95,11 +100,20 @@ def library_books():
         json_message=jsonify({'created':book_info})
 
     else:
-        books_data=fetch_books()
+        page=request.args.get('page',default=1)
+        per_page=5
+        try:
+            page=int(page)
+        except:
+            return {'error':'invalid input'}, 400
+        BooksList=Books.query.paginate(page=page, per_page=per_page, error_out=False)
+        books_data=[book.format() for book in BooksList.items]
         status_code=200
         json_message=jsonify(books_data)
 
     return json_message, status_code
+
+
 
 #Route for updating and deleting book information
 @app.route('/books/<int:book_id>',methods=['PUT','DELETE'])
@@ -195,7 +209,7 @@ def library_members():
             return {"error":"invalid phone number"}, 400
 
         try:
-            member_info['date_of_birth']=parser.parse(member_info['date_of_birth'])
+            member_info['date_of_birth']=parser.parse(member_info['date_of_birth'],dayfirst=True)
         except:
             return {"error":"date_of_birth not a valid parameter"}, 400
         else:
@@ -214,7 +228,14 @@ def library_members():
         json_message=jsonify({'created':member_info})
 
     else:
-        members_data=fetch_members()
+        page=request.args.get('page',default=1)
+        per_page=5
+        try:
+            page=int(page)
+        except:
+            return {'error':'invalid input'}, 400
+        MembersList=Members.query.paginate(page=page, per_page=per_page, error_out=False)
+        members_data=[member.format() for member in MembersList.items]
         json_message=jsonify(members_data)
         status_code=200
 
@@ -249,7 +270,7 @@ def make_changes_in_members_data(member_id):
             
         if('date_of_birth' in update_info.keys()):
             try:
-                update_info['date_of_birth']=parser.parse(update_info['date_of_birth'])
+                update_info['date_of_birth']=parser.parse(update_info['date_of_birth'],dayfirst=True)
             except:
                 return {"error":"date_of_birth not a valid parameter"}, 400
             else:

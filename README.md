@@ -11,8 +11,9 @@ Steps to run the project:<br>
 <hr>
 Key Points of design:
 <ol>
-  <li>The route <b> /books </b>  on GET request shows the list of available books in JSON format and on POST request a new book is added. </li>
-  <li>Similarly, the route <b> /members </b>  on GET request shows the list of members in JSON format and on POST request a new member is added.</li>
+  <li>The route <b> /books </b>  on GET request shows the list of available books in JSON format, user can send a page number through the query parameter (e.g. /books?page=2) also data of only 5 books are present in a page.</li>
+  <li>POST request on <b> /books </b> adds a new book (post a raw json object). e.g. {"title":"[book_title]","author":"[book_author]","published_year":[YEAR]} </li>
+  <li>Similarly, the route <b> /members </b>  on GET request shows the list of members in JSON format, it also accepts a query parameter 'page' (e.g. /members?page=2)  and on POST request a new member is added. e.g {"name":"[member_name]","contact":[phone_bumber],"address":"[address]","date_of_birth":"[DD-MM-YYYY]"} </li>
   <li>In the route <b> /books/book_id </b>  user sends an integer of the book id to update or delete the book. This route works on PUT and DELETE requests.</li>
   <li>Similar to <b> /books/book_id </b> another route <b> /members/member_id </b>  user sends an integer of the member id to update or delete a member. This route also works on PUT and DELETE requests.</li>
   <li>The route <b> /books/search/ </b>  only accepts GET request where a user can send the author name or book title through the query parameter (e.g. /books/search/?author=Author name)</li>
@@ -22,5 +23,5 @@ Key Points of design:
 <hr>
 Limitations:
 <ol>
-  <li>This API does not implement pagination and token-based authentication.</li>
+  <li>This API does not implement token-based authentication.</li>
 </ol>
