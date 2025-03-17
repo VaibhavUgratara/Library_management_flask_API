@@ -130,9 +130,10 @@ def make_changes_in_books_data(book_id):
         for k in update_info.keys():
             if k not in allowed_fields:
                 return jsonify({'error':f'invalid field {k}'}), 400
-            
-        if (update_info['published_year']<0) or (update_info['published_year']>datetime.today().year):
-            return jsonify({'error':f'published_year invalid'}), 400
+
+        if 'published_year' in update_info.keys():    
+            if (update_info['published_year']<0) or (update_info['published_year']>datetime.today().year):
+                return jsonify({'error':f'published_year invalid'}), 400
         
         
 
